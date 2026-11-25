@@ -1,8 +1,8 @@
 """Worker de Kaaru.
 
-Execute en Container App Job, declenche par la longueur de la file (KEDA
-`azure-queue`). Il ne sert aucune requete : son unique role est d'agreger les
-evenements de scan et d'ecrire les compteurs dans la table.
+Execute en Container App Job, planifie toutes les deux minutes (NCRONTAB). Il
+ne sert aucune requete : son unique role est d'agreger les evenements de scan et
+d'ecrire les compteurs dans la table.
 
 Cette separation est ce qui rend la redirection rapide : /r/{slug} depose un
 message et rend la main, sans jamais attendre une ecriture de statistiques.

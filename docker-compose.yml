@@ -22,8 +22,8 @@ services:
     environment: &storage
       STORE_BACKEND: azure
       STORAGE_ACCOUNT_URL: http://azurite:10000/devstoreaccount1
-      STORAGE_CONNECTION_STRING: >-
-        DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
+      # Renseigne dans .env (non versionne), a partir de .env.azurite.example.
+      STORAGE_CONNECTION_STRING: ${AZURITE_CONNECTION_STRING:?copier .env.azurite.example vers .env}
       LOG_LEVEL: INFO
     command: >
       sh -c "python scripts/bootstrap_storage.py || true;
@@ -34,7 +34,14 @@ services:
   worker:
     build: .
     depends_on:
-      - azurite
-      - api
+      azurite:
+        condition: service_started
+      api:
+        # Le worker consomme une file que l'API cree au demarrage : sans cette
+        # condition il demarre avant et echoue sur QueueNotFound.
+        condition: service_healthy
     environment: *storage
     command: ["python", "-m", "app.worker"]
+    # Le worker ne sert pas HTTP : la sonde de l'image ne s'applique pas.
+    healthcheck:
+      disable: true
