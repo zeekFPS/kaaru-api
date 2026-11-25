@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101", "B008"]  # B008 : faux positif classique avec FastAPI Depends
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
