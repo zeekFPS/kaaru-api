@@ -1,0 +1,60 @@
+name: app-ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: lint, tests, QR decode
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # pyzbar a besoin de la bibliotheque systeme pour decoder les QR.
+      - name: Installer libzbar
+        run: sudo apt-get update && (sudo apt-get install -y libzbar0t64 || sudo apt-get install -y libzbar0)
+
+      - name: Installer les dependances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check app tests
+
+      - name: Tests
+        run: pytest -v
+
+  image:
+    name: build image docker
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: docker build -t kaaru-api:ci .
+
+      - name: Smoke test du conteneur
+        run: |
+          docker run -d --name kaaru -p 8000:8000 kaaru-api:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/health | grep -q '"status":"ok"'
+          curl -fsS -X POST http://127.0.0.1:8000/api/links \
+            -H 'Content-Type: application/json' \
+            -d '{"target_url":"https://example.com"}' | grep -q short_url
+          docker rm -f kaaru
