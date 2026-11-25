@@ -9,3 +9,5 @@ ignore = ["S101", "B008"]  # B008 : faux positif classique avec FastAPI Depends
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# Permet "pytest" (et pas seulement "python -m pytest") depuis la racine.
+pythonpath = ["."]
