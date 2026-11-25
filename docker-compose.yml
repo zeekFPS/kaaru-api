@@ -1,0 +1,40 @@
+# Environnement local complet : Azurite remplace Azure Storage, l'API et le
+# worker tournent dans la meme image que la production.
+#
+#   docker compose up --build
+#   http://127.0.0.1:8000
+
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    command: >
+      azurite --skipApiVersionCheck --loose
+      --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+
+  api:
+    build: .
+    depends_on:
+      - azurite
+    environment: &storage
+      STORE_BACKEND: azure
+      STORAGE_ACCOUNT_URL: http://azurite:10000/devstoreaccount1
+      STORAGE_CONNECTION_STRING: >-
+        DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;
+      LOG_LEVEL: INFO
+    command: >
+      sh -c "python scripts/bootstrap_storage.py || true;
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: .
+    depends_on:
+      - azurite
+      - api
+    environment: *storage
+    command: ["python", "-m", "app.worker"]
