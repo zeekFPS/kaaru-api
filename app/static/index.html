@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kaaru · QR codes personnalisables et dynamiques</title>
+<style>
+  :root {
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --accent: #4f46e5;
+    --accent-ink: #ffffff;
+    --danger: #dc2626;
+    --ok: #059669;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 15% -10%, #eef2ff 0%, transparent 60%), var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    max-width: 1180px; margin: 0 auto; padding: 28px 24px 8px;
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  .logo { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+  .logo span { color: var(--accent); }
+  .tagline { color: var(--muted); font-size: 14px; }
+  header nav { margin-left: auto; font-size: 13px; }
+  header nav a { color: var(--muted); text-decoration: none; margin-left: 16px; }
+  header nav a:hover { color: var(--accent); }
+  main {
+    max-width: 1180px; margin: 0 auto; padding: 12px 24px 64px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 920px) { main { grid-template-columns: 1fr; } .preview { position: static !important; } }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 22px;
+  }
+  .card + .card { margin-top: 18px; }
+  h2 { font-size: 15px; margin: 0 0 14px; letter-spacing: -0.01em; }
+  h2 .num {
+    display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center;
+    background: #eef2ff; color: var(--accent); border-radius: 7px; font-size: 12px; margin-right: 8px;
+  }
+  label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  input[type="text"], input[type="url"], select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+    font-size: 14px; color: var(--ink); background: #fff; font-family: inherit;
+  }
+  input[type="text"]:focus, input[type="url"]:focus, select:focus {
+    outline: 2px solid #c7d2fe; border-color: var(--accent);
+  }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row + .row, .field + .field, .field + .row { margin-top: 12px; }
+  .field { margin-bottom: 12px; }
+  .swatches { display: flex; gap: 8px; align-items: center; }
+  input[type="color"] {
+    width: 44px; height: 38px; padding: 3px; border: 1px solid var(--line);
+    border-radius: 9px; background: #fff; cursor: pointer;
+  }
+  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 500; color: var(--ink); }
+  .check input { width: 16px; height: 16px; accent-color: var(--accent); }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: 600; border-radius: 10px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+    padding: 10px 16px; cursor: pointer; transition: transform .06s ease, box-shadow .15s ease;
+  }
+  button:hover { box-shadow: 0 4px 14px rgba(15, 23, 42, .07); }
+  button:active { transform: translateY(1px); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.primary:disabled { opacity: .55; cursor: not-allowed; }
+  button.ghost { font-weight: 500; }
+  .preview { position: sticky; top: 20px; }
+  .preview .stage {
+    background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px; display: flex; align-items: center; justify-content: center; min-height: 300px;
+  }
+  .preview img { width: 100%; max-width: 340px; height: auto; display: block; border-radius: 6px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+    padding: 4px 10px; border-radius: 999px; background: #ecfdf5; color: var(--ok);
+  }
+  .badge.warn { background: #fef2f2; color: var(--danger); }
+  .badge.neutral { background: #f1f5f9; color: var(--muted); }
+  .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .actions .primary { flex: 1 1 100%; }
+  .error {
+    display: none; margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+    background: #fef2f2; color: #991b1b; font-size: 13px; border: 1px solid #fecaca;
+  }
+  .error.show { display: block; }
+  .result { display: none; }
+  .result.show { display: block; }
+  .shortbox {
+    display: flex; gap: 8px; align-items: center; margin: 10px 0 6px;
+    background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 12px;
+  }
+  .shortbox code { font-size: 13.5px; overflow-wrap: anywhere; }
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px;
+  }
+  .stat { background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 20px; letter-spacing: -0.02em; }
+  .stat span { font-size: 11.5px; color: var(--muted); }
+  footer { max-width: 1180px; margin: 0 auto; padding: 0 24px 40px; color: var(--muted); font-size: 12.5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
+  .linkish { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 13px; }
+  .linkish:hover { text-decoration: underline; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Kaa<span>ru</span></div>
+  <div class="tagline">Le QR qui reste modifiable après impression.</div>
+  <nav>
+    <a href="/docs">API</a>
+    <a href="#mes-liens">Mes liens</a>
+  </nav>
+</header>
+
+<main>
+  <section>
+    <div class="card">
+      <h2><span class="num">1</span>Destination</h2>
+      <div class="field">
+        <label for="url">Lien à partager</label>
+        <input id="url" type="url" placeholder="https://exemple.fr/ma-page" value="https://junia.com" />
+        <div class="hint">Le QR encode toujours un lien court Kaaru, jamais cette URL. Tu pourras la changer plus tard sans réimprimer.</div>
+      </div>
+      <div class="field">
+        <label for="title">Nom interne (facultatif)</label>
+        <input id="title" type="text" placeholder="Flyer portes ouvertes" maxlength="80" />
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span>Apparence</h2>
+      <div class="row">
+        <div>
+          <label for="dotsType">Forme des modules</label>
+          <select id="dotsType">
+            <option value="rounded" selected>Arrondis</option>
+            <option value="square">Carrés</option>
+            <option value="dots">Points</option>
+            <option value="classy">Classy</option>
+            <option value="classy-rounded">Classy arrondis</option>
+            <option value="extra-rounded">Très arrondis</option>
+          </select>
+        </div>
+        <div>
+          <label for="cornersType">Forme des yeux</label>
+          <select id="cornersType">
+            <option value="extra-rounded" selected>Très arrondis</option>
+            <option value="square">Carrés</option>
+            <option value="dot">Ronds</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Couleur des modules</label>
+          <div class="swatches">
+            <input id="dotsColor" type="color" value="#111827" />
+            <label class="check" style="margin:0"><input id="gradientOn" type="checkbox" /> Dégradé</label>
+            <input id="gradientColor" type="color" value="#4f46e5" disabled />
+          </div>
+        </div>
+        <div>
+          <label>Couleur de fond</label>
+          <div class="swatches"><input id="bgColor" type="color" value="#ffffff" /></div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label for="logo">Logo central (PNG, JPEG, SVG · 2 Mo max)</label>
+        <input id="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="font-size:13px" />
+        <div class="hint">Le fond derrière le logo est nettoyé automatiquement, et le code reste vérifié par décodage à l'export.</div>
+      </div>
+      <div class="row">
+        <div>
+          <label class="check"><input id="frameOn" type="checkbox" /> Ajouter un bandeau</label>
+          <input id="frameText" type="text" placeholder="SCANNEZ-MOI" maxlength="32" style="margin-top:8px" disabled />
+        </div>
+        <div>
+          <label>Couleur du bandeau</label>
+          <div class="swatches"><input id="frameColor" type="color" value="#4f46e5" disabled /></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">3</span>Création</h2>
+      <div class="actions">
+        <button id="create" class="primary">Créer le lien et le QR code</button>
+      </div>
+      <div id="error" class="error"></div>
+    </div>
+
+    <div class="card result" id="result">
+      <h2>Lien créé</h2>
+      <div class="shortbox">
+        <code id="shortUrl">…</code>
+        <button class="ghost" id="copy" style="margin-left:auto">Copier</button>
+      </div>
+      <div class="actions" style="margin-top:4px">
+        <a class="linkish" id="dlPng" href="#" download>Télécharger PNG</a>
+        <a class="linkish" id="dlSvg" href="#" download>Télécharger SVG</a>
+        <a class="linkish" id="openLink" href="#" target="_blank" rel="noopener">Tester</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="statTotal">0</b><span>scans agrégés</span></div>
+        <div class="stat"><b id="statToday">0</b><span>aujourd'hui</span></div>
+        <div class="stat"><b id="statDays">0</b><span>jours actifs</span></div>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="refreshStats">Rafraîchir les stats</button>
+      </div>
+      <div class="field" style="margin-top:16px">
+        <label for="newTarget">Changer la destination (le QR imprimé reste valable)</label>
+        <div style="display:flex;gap:8px">
+          <input id="newTarget" type="url" placeholder="https://nouvelle-page.fr" />
+          <button class="ghost" id="saveTarget">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="mes-liens">
+      <h2>Mes liens récents</h2>
+      <div id="linksList" class="hint">Chargement…</div>
+    </div>
+  </section>
+
+  <aside class="preview card">
+    <h2>Aperçu en direct</h2>
+    <div class="stage"><img id="preview" alt="Aperçu du QR code" /></div>
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <span id="contrastBadge" class="badge neutral"><span class="dot"></span> contraste —</span>
+      <span id="modeBadge" class="badge neutral">destination directe</span>
+    </div>
+    <div class="hint" id="scanHint">Le QR ci-dessus encode l'URL cible. Après création, il encodera le lien court, ce qui rend la destination modifiable.</div>
+  </aside>
+</main>
+
+<footer>
+  Kaaru · projet Cloud Computing, Azure for Students. Rendu vérifié par décodage (pyzbar) à taille de capture.
+</footer>
+
+<script src="/static/vendor/qr-code-styling.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = { logoDataUrl: null, slug: null, style: null, previewPayload: null };
+
+  const qr = new QRCodeStyling({
+    width: 640,
+    height: 640,
+    type: "canvas",
+    data: "https://junia.com",
+    margin: 0,
+    dotsOptions: { color: "#111827", type: "rounded" },
+    cornersSquareOptions: { color: "#111827", type: "extra-rounded" },
+    cornersDotOptions: { color: "#111827", type: "dot" },
+    backgroundOptions: { color: "#ffffff" },
+    imageOptions: { crossOrigin: "anonymous", margin: 8, imageSize: 0.3, hideBackgroundDots: true },
+  });
+
+  function luminance(hex) {
+    const h = hex.replace("#", "");
+    const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16) / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  function contrast(a, b) {
+    const l1 = luminance(a), l2 = luminance(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+
+  function readStyle() {
+    const gradientOn = $("gradientOn").checked;
+    return {
+      dots: {
+        type: $("dotsType").value,
+        color: $("dotsColor").value,
+        gradient: gradientOn ? { type: "linear", rotation: 45, color2: $("gradientColor").value } : null,
+      },
+      corners: {
+        square: $("cornersType").value,
+        dot: $("cornersType").value === "square" ? "square" : "dot",
+        color: $("dotsColor").value,
+      },
+      background: { color: $("bgColor").value },
+      logo: { enabled: Boolean(state.logoDataUrl), size: 0.3, excavate: true },
+      frame: {
+        enabled: $("frameOn").checked,
+        text: $("frameText").value || "",
+        color: $("frameColor").value,
+      },
+    };
+  }
+
+  function updateContrastBadge(style) {
+    const a = style.dots.color;
+    const b = style.background.color;
+    let ratio = contrast(a, b);
+    if (style.dots.gradient) ratio = Math.min(ratio, contrast(style.dots.gradient.color2, b));
+    const badge = $("contrastBadge");
+    badge.className = "badge " + (ratio >= 4.5 ? "" : "warn");
+    badge.innerHTML = `<span class="dot"></span> contraste ${ratio.toFixed(1)}:1` + (ratio >= 4.5 ? "" : " (faible)");
+  }
+
+  async function drawPreview() {
+    const style = readStyle();
+    const payload = state.previewPayload || $("url").value || "https://junia.com";
+    qr.update({
+      data: payload,
+      image: state.logoDataUrl || undefined,
+      dotsOptions: { color: style.dots.color, type: style.dots.type },
+      cornersSquareOptions: { color: style.corners.color, type: style.corners.square },
+      cornersDotOptions: { color: style.corners.color, type: style.corners.dot },
+      backgroundOptions: { color: style.background.color },
+    });
+
+    let blob;
+    try {
+      blob = await qr.getRawData("png");
+    } catch (e) {
+      return;
+    }
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement("canvas");
+    const barH = style.frame.enabled ? Math.round(bitmap.width * 0.16) : 0;
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height + barH;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = style.background.color;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0);
+    if (barH) {
+      ctx.fillStyle = style.frame.color;
+      ctx.fillRect(0, bitmap.height, canvas.width, barH);
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `700 ${Math.round(barH * 0.4)}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.fillText((style.frame.text || "").toUpperCase(), canvas.width / 2, bitmap.height + barH / 2);
+    }
+    $("preview").src = canvas.toDataURL("image/png");
+    updateContrastBadge(style);
+  }
+
+  let timer = null;
+  function schedulePreview() {
+    clearTimeout(timer);
+    timer = setTimeout(drawPreview, 160);
+  }
+
+  ["url", "dotsType", "cornersType", "dotsColor", "bgColor", "gradientOn", "gradientColor",
+   "frameOn", "frameText", "frameColor"].forEach((id) => {
+    $(id).addEventListener("input", () => {
+      if (id === "gradientOn") {
+        $("gradientColor").disabled = !$("gradientOn").checked;
+      }
+      if (id === "frameOn") {
+        $("frameText").disabled = !$("frameOn").checked;
+        $("frameColor").disabled = !$("frameOn").checked;
+      }
+      schedulePreview();
+    });
+  });
+
+  $("logo").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) { state.logoDataUrl = null; schedulePreview(); return; }
+    if (file.size > 2 * 1024 * 1024) { showError("Logo trop lourd (2 Mo maximum)."); return; }
+    const reader = new FileReader();
+    reader.onload = () => { state.logoDataUrl = reader.result; schedulePreview(); };
+    reader.readAsDataURL(file);
+  });
+
+  function showError(message) {
+    const box = $("error");
+    box.textContent = message;
+    box.classList.add("show");
+  }
+  function clearError() { $("error").classList.remove("show"); }
+
+  $("create").addEventListener("click", async () => {
+    clearError();
+    const url = $("url").value.trim();
+    if (!url) { showError("Renseigne une URL cible."); return; }
+    const style = readStyle();
+    $("create").disabled = true;
+    $("create").textContent = "Création…";
+    try {
+      const response = await fetch("/api/links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target_url: url, title: $("title").value, style }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        showError(typeof body.detail === "string" ? body.detail : "Le style a été refusé : il ne se scanne pas.");
+        return;
+      }
+      state.slug = body.link.slug;
+      state.style = style;
+      state.previewPayload = body.short_url;
+
+      if (state.logoDataUrl) {
+        const blob = await (await fetch(state.logoDataUrl)).blob();
+        const form = new FormData();
+        form.append("file", blob, "logo." + (blob.type.split("/")[1] || "png"));
+        await fetch(`/api/links/${state.slug}/logo`, { method: "POST", body: form });
+      }
+
+      $("shortUrl").textContent = body.short_url;
+      $("dlPng").href = body.qr_png_url + "?size=1200";
+      $("dlSvg").href = body.qr_svg_url;
+      $("openLink").href = body.short_url;
+      $("result").classList.add("show");
+      $("modeBadge").textContent = "lien court · modifiable";
+      $("modeBadge").className = "badge";
+      $("scanHint").textContent = "Ce QR encode maintenant le lien court. Change la destination plus bas, le code imprimé restera valable.";
+      await drawPreview();
+      await refreshStats();
+      await loadLinks();
+    } catch (e) {
+      showError("Erreur réseau : " + e.message);
+    } finally {
+      $("create").disabled = false;
+      $("create").textContent = "Créer le lien et le QR code";
+    }
+  });
+
+  $("copy").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText($("shortUrl").textContent);
+      $("copy").textContent = "Copié";
+      setTimeout(() => ($("copy").textContent = "Copier"), 1500);
+    } catch (e) { /* clipboard indisponible */ }
+  });
+
+  async function refreshStats() {
+    if (!state.slug) return;
+    const response = await fetch(`/api/links/${state.slug}/stats`);
+    if (!response.ok) return;
+    const stats = await response.json();
+    const today = new Date().toISOString().slice(0, 10);
+    $("statTotal").textContent = stats.total_scans;
+    $("statToday").textContent = (stats.per_day.find((d) => d.day === today) || { scans: 0 }).scans;
+    $("statDays").textContent = stats.per_day.length;
+  }
+  $("refreshStats").addEventListener("click", refreshStats);
+
+  $("saveTarget").addEventListener("click", async () => {
+    if (!state.slug) return;
+    const target = $("newTarget").value.trim();
+    if (!target) return;
+    const response = await fetch(`/api/links/${state.slug}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target_url: target }),
+    });
+    if (response.ok) {
+      $("saveTarget").textContent = "Enregistré";
+      setTimeout(() => ($("saveTarget").textContent = "Enregistrer"), 1500);
+      $("url").value = target;
+    } else {
+      showError("Destination refusée par l'API.");
+    }
+  });
+
+  async function loadLinks() {
+    try {
+      const links = await (await fetch("/api/links?limit=8")).json();
+      if (!links.length) { $("linksList").textContent = "Aucun lien pour l'instant."; return; }
+      $("linksList").innerHTML = links.map((link) => {
+        const dot = link.active ? "#059669" : "#94a3b8";
+        return `<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9">
+          <span style="width:8px;height:8px;border-radius:50%;background:${dot}"></span>
+          <code style="font-size:12.5px">/r/${link.slug}</code>
+          <span style="color:#64748b;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${link.title || link.target_url}</span>
+        </div>`;
+      }).join("");
+    } catch (e) { $("linksList").textContent = "Impossible de charger les liens."; }
+  }
+
+  drawPreview();
+  loadLinks();
+})();
+</script>
+</body>
+</html>
