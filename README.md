@@ -4,7 +4,9 @@ Générateur de QR codes **dynamiques** et personnalisables. Le QR encode un lie
 court que l'on contrôle : changer la destination ne demande pas de réimprimer.
 
 Ce dépôt contient le service : API FastAPI, moteur de rendu vérifié, worker
-d'agrégation des scans. L'infrastructure Azure est dans le dépôt `kaaru-infra`.
+d'agrégation des scans. L'infrastructure Azure est dans le dépôt
+[`kaaru-infra`](https://github.com/zeekFPS/kaaru-infra), et le rapport du projet
+dans [`infra/docs/rapport.md`](https://github.com/zeekFPS/kaaru-infra/blob/main/docs/rapport.md).
 
 ## Le problème
 
